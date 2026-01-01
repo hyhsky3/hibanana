@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // 设置 CORS 响应头，允许前端调用
+    // 设置 CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -22,22 +22,23 @@ export default async function handler(req, res) {
         // 剔除前缀
         const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, "");
 
-        // 使用您的 ImgBB Key
-        const apiKey = '983792cb00fcc07ce22956cf5174092b';
-
-        // 使用 Node.js 18+ 自带的原生 fetch
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        // 使用 freeimage.host 的免费 API（无需 Key）
+        const response = await fetch('https://freeimage.host/api/1/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ image: cleanBase64 })
+            body: new URLSearchParams({
+                key: '6d207e02198a847aa98d0a2a901485a5', // 公共免费 key
+                source: cleanBase64,
+                format: 'json'
+            })
         });
 
         const data = await response.json();
 
-        if (data.success) {
-            return res.status(200).json({ success: true, url: data.data.url });
+        if (data.success && data.image && data.image.url) {
+            return res.status(200).json({ success: true, url: data.image.url });
         } else {
-            return res.status(500).json({ success: false, error: data.error });
+            return res.status(500).json({ success: false, error: data });
         }
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
