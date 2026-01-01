@@ -64,49 +64,30 @@ export const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality =
 };
 
 /**
- * 辅助函数：将 Base64 转为二进制 Blob 对象
- * 这比直接发 Base64 字符串要稳定得多，几乎没有服务器会拒收。
- */
-const base64ToBlob = (base64) => {
-  const byteString = atob(base64);
-  const ab = new ArrayBuffer(byteString.length);
-  const ia = new Uint8Array(ab);
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-  return new Blob([ab], { type: 'image/jpeg' });
-};
-
-/**
  * 将图片上传并获取 URL
- * 【终极修复】：换用免 Key 的 Telegraph 图床，绕过所有 API 限制。
+ * 【终极回归版】：通过本站 API 中转，解决跨域并确性能。
  */
 export const uploadImage = async (base64) => {
   try {
-    // 1. 准备纯净数据并转为二进制
-    const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
-    const blob = base64ToBlob(cleanBase64);
+    // 强制调用本站 Vercel 提供的后端中转接口
+    const uploadUrl = '/api/upload';
 
-    // 2. 构造标准文件上传表单
-    const formData = new FormData();
-    formData.append('file', blob, 'image.jpg');
-
-    // 3. 上传到 telegra.ph (免 Key，全世界可用)
-    const response = await axios.post('https://telegra.ph/upload', formData, {
+    const response = await axios.post(uploadUrl, {
+      base64: base64
+    }, {
+      headers: { 'Content-Type': 'application/json' },
       timeout: 30000
     });
 
-    // 4. 解析结果
-    if (Array.isArray(response.data) && response.data[0] && response.data[0].src) {
-      const finalUrl = 'https://telegra.ph' + response.data[0].src;
-      console.log('✅ Telegraph 上传成功:', finalUrl);
-      return finalUrl;
+    if (response.data && response.data.success && response.data.url) {
+      console.log('✅ 内部上传成功:', response.data.url);
+      return response.data.url;
     }
 
-    throw new Error('图床返回格式不符');
+    throw new Error('中转服务器返回异常');
   } catch (error) {
-    console.error('❌ 上传完全失败:', error.message);
-    throw new Error('上传参考图失败：服务器连接中断');
+    console.error('❌ 上传失败:', error.response?.data || error.message);
+    throw new Error('上传参考图失败：服务器线路波动，请重试');
   }
 };
 

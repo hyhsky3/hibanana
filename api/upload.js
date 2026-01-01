@@ -1,58 +1,45 @@
-const https = require('https');
-
 export default async function handler(req, res) {
+    // 设置 CORS 响应头，允许前端调用
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
     try {
         const { base64 } = req.body;
         if (!base64) {
-            return res.status(400).json({ error: 'Missing base64 data' });
+            return res.status(400).json({ message: 'Missing base64 data' });
         }
 
-        // 去掉 base64 前缀（如有）
+        // 剔除前缀
         const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, "");
 
-        // 直接使用写死的 API Key
+        // 使用您的 ImgBB Key
         const apiKey = '983792cb00fcc07ce22956cf5174092b';
-        const postData = `image=${encodeURIComponent(cleanBase64)}`;
 
-        const options = {
-            hostname: 'api.imgbb.com',
-            path: `/1/upload?key=${apiKey}`,
+        // 使用 Node.js 18+ 自带的原生 fetch
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData)
-            }
-        };
-
-        const imgbbReq = https.request(options, (imgbbRes) => {
-            let data = '';
-            imgbbRes.on('data', (chunk) => { data += chunk; });
-            imgbbRes.on('end', () => {
-                try {
-                    const result = JSON.parse(data);
-                    if (result.success) {
-                        res.status(200).json({ url: result.data.url });
-                    } else {
-                        res.status(500).json({ error: 'ImgBB upload failed', details: result });
-                    }
-                } catch (e) {
-                    res.status(500).json({ error: 'Failed to parse ImgBB response' });
-                }
-            });
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ image: cleanBase64 })
         });
 
-        imgbbReq.on('error', (e) => {
-            res.status(500).json({ error: 'ImgBB request error', message: e.message });
-        });
+        const data = await response.json();
 
-        imgbbReq.write(postData);
-        imgbbReq.end();
-
+        if (data.success) {
+            return res.status(200).json({ success: true, url: data.data.url });
+        } else {
+            return res.status(500).json({ success: false, error: data.error });
+        }
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error', message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 }
