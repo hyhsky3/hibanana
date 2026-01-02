@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // API 配置 - GRSAI 国内直连节点
 const API_BASE_URL = 'https://grsai.dakka.com.cn';
-// 从环境变量获取 API Key，增强安全性
+// 从环境变量获取 API Key，增强安全性（在 Netlify 后台设置）
 const API_KEY = import.meta.env.VITE_GRSAI_API_KEY || 'sk-cb6ce7c67127418e91a56c3892604f34';
 const API_ENDPOINT = '/v1/draw/nano-banana'; // Nano Banana 绘画接口
 const RESULT_ENDPOINT = '/v1/draw/result';   // 单独轮询结果接口
