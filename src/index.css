@@ -274,17 +274,18 @@ body::before {
   }
 }
 
-@keyframes pulse {
-
-  0%,
-  100% {
+@keyframes spinPulse {
+  0% {
+    transform: rotate(0deg) scale(1);
     opacity: 1;
-    transform: scale(1);
   }
-
   50% {
+    transform: rotate(180deg) scale(0.85);
     opacity: 0.6;
-    transform: scale(0.9);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 1;
   }
 }
 
@@ -322,7 +323,7 @@ body::before {
 }
 
 .spinner {
-  animation: spin 2s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
 .skeleton-loading {
@@ -350,8 +351,8 @@ body::before {
   width: 64px !important;
   height: 64px !important;
   color: var(--color-accent) !important;
-  filter: drop-shadow(0 0 15px rgba(102, 126, 234, 0.6));
-  animation: spin 3s linear infinite, pulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.8));
+  animation: spinPulse 2s ease-in-out infinite;
 }
 
 .loading-text-dynamic {

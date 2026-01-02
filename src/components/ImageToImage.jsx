@@ -350,7 +350,7 @@ function ImageToImage() {
                             </div>
                             <div className="result-image-container">
                                 <div className="skeleton-loading">
-                                    <Loader2 size={48} className="spinner" style={{ color: 'var(--color-primary)' }} />
+                                    <Loader2 size={48} className="spinner" />
                                     <p className="loading-text-dynamic">
                                         {['正在捕捉灵感...', '正在画布上落笔...', '魔法正在发生...', '正在调色中...', '细节雕刻中...'][Math.floor(Date.now() / 2000) % 5]}
                                     </p>
