@@ -203,3 +203,130 @@
         /* 在极窄屏幕下缩小字体 */
     }
 }
+
+/* ==================== 文件上传区域 ==================== */
+.upload-area {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    background: var(--color-bg-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-area:hover {
+    border-color: var(--color-primary);
+    background: var(--color-bg-elevated);
+}
+
+.upload-area.has-file {
+    border-style: solid;
+    padding: var(--spacing-md);
+    background: rgba(102, 126, 234, 0.05);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.hidden-input {
+    display: none;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    color: var(--color-text-secondary);
+}
+
+.upload-icon {
+    color: var(--color-text-tertiary);
+    transition: transform 0.3s ease;
+}
+
+.upload-area:hover .upload-icon {
+    transform: scale(1.1);
+    color: var(--color-primary);
+}
+
+.upload-text {
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.upload-subtext {
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+}
+
+/* ==================== 文件预览卡片 ==================== */
+.file-preview {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: var(--spacing-md);
+    animation: fadeIn 0.3s ease;
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.file-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.file-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text-primary);
+}
+
+.file-status {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+}
+
+.btn-remove {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    transition: all 0.2s ease;
+}
+
+.btn-remove:hover {
+    background: rgba(255, 71, 87, 0.1);
+    color: #ff4757;
+}
+
+/* ==================== 动画 ==================== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

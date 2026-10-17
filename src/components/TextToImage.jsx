@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Wand2, Download, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Wand2, Download, Loader2, Paperclip, X, FileText } from 'lucide-react';
 import { textToImage, imageToImage } from '../api/laozhangApi';
+import { extractFileContent } from '../utils/fileExtractor';
 import './TextToImage.css';
 
 const ASPECT_RATIOS = [
@@ -34,6 +35,12 @@ function TextToImage() {
     const [error, setError] = useState(null);
     const [refinePrompt, setRefinePrompt] = useState('');
 
+    // 文件上传相关状态
+    const [attachedFile, setAttachedFile] = useState(null);
+    const [fileContent, setFileContent] = useState('');
+    const [isExtracting, setIsExtracting] = useState(false);
+    const fileInputRef = useRef(null);
+
     // 监听状态变化并同步到 localStorage
     useEffect(() => {
         const stateToSave = {
@@ -46,9 +53,45 @@ function TextToImage() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     }, [prompt, negativePrompt, aspectRatio, resolution, result]);
 
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // 验证文件大小 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setError('文档大小不能超过 5MB');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        setAttachedFile(file);
+        setIsExtracting(true);
+        setError(null);
+
+        try {
+            const content = await extractFileContent(file);
+            setFileContent(content);
+            console.log('Extracted content length:', content.length);
+        } catch (err) {
+            console.error('Extraction failed:', err);
+            setError(err.message || '文档解析失败');
+            setAttachedFile(null);
+            setFileContent('');
+        } finally {
+            setIsExtracting(false);
+        }
+    };
+
+    const clearFile = (e) => {
+        e.stopPropagation();
+        setAttachedFile(null);
+        setFileContent('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleGenerate = async () => {
-        if (!prompt.trim()) {
-            setError('请输入提示词');
+        if (!prompt.trim() && !fileContent) {
+            setError('请输入提示词或上传参考文档');
             return;
         }
 
@@ -57,8 +100,16 @@ function TextToImage() {
         setResult(null);
 
         try {
+            // 组合提示词
+            let finalPrompt = prompt;
+            if (fileContent) {
+                // 截取前 2000 个字符作为上下文，避免过长
+                const context = fileContent.slice(0, 2000);
+                finalPrompt = `参考以下文档内容设计画面:\n${context}\n\n画面描述: ${prompt}`;
+            }
+
             const response = await textToImage({
-                prompt,
+                prompt: finalPrompt,
                 negativePrompt,
                 aspectRatio,
                 resolution,
@@ -91,10 +142,10 @@ function TextToImage() {
         setResult(null);
 
         try {
-            const base64Str = currentResultImage.split(',')[1];
-
+            // 直接传递 URL，laozhangApi 内部会自动处理 (支持 HTTP URL 或 Base64)
+            // 这里的 currentResultImage 是 API 返回的链接，不依赖 ImgBB
             const response = await imageToImage({
-                images: [base64Str],
+                images: [currentResultImage],
                 prompt: refinePrompt,
                 strength: 0.75,
                 aspectRatio,
@@ -114,33 +165,28 @@ function TextToImage() {
         }
     };
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!result?.imageUrl) return;
 
-        const img = new Image();
-        img.crossOrigin = 'anonymous'; // 尝试开启跨域
-        img.src = result.imageUrl;
+        try {
+            // 使用 fetch 获取图片 Blob，避开 Canvas 跨域污染问题
+            const response = await fetch(result.imageUrl);
 
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+            if (!response.ok) throw new Error('Network response was not ok');
 
-            const dataURL = canvas.toDataURL('image/png');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = dataURL;
+            link.href = url;
             link.download = `banana-ai-${Date.now()}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        };
-
-        img.onerror = () => {
-            console.error('Canvas download failed, falling back to window.open');
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed, falling back to window.open:', error);
             window.open(result.imageUrl, '_blank');
-        };
+        }
     };
 
     return (
@@ -150,6 +196,50 @@ function TextToImage() {
                     <Wand2 size={24} />
                     文本生成图像
                 </h2>
+
+                {/* 参考文档上传 */}
+                <div className="form-group">
+                    <label className="label">参考文档 (可选)</label>
+                    <div
+                        className={`upload-area ${attachedFile ? 'has-file' : ''}`}
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden-input"
+                            accept=".pdf,.doc,.docx,.txt,.md"
+                            onChange={handleFileChange}
+                        />
+
+                        {attachedFile ? (
+                            <div className="file-preview">
+                                <div className="file-icon">
+                                    {isExtracting ? (
+                                        <Loader2 size={24} className="spinner" />
+                                    ) : (
+                                        <FileText size={24} />
+                                    )}
+                                </div>
+                                <div className="file-info">
+                                    <span className="file-name">{attachedFile.name}</span>
+                                    <span className="file-status">
+                                        {isExtracting ? '正在提取内容...' : `已提取 ${fileContent.length} 字`}
+                                    </span>
+                                </div>
+                                <button className="btn-icon btn-remove" onClick={clearFile}>
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="upload-placeholder">
+                                <Paperclip size={24} className="upload-icon" />
+                                <span className="upload-text">点击或拖拽上传文档 (PDF, Word, TXT, MD)</span>
+                                <span className="upload-subtext">最大 5MB • 智能提取内容辅助生图</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* 提示词输入 */}
                 <div className="form-group">
@@ -220,7 +310,7 @@ function TextToImage() {
                 <button
                     className="btn btn-primary btn-generate"
                     onClick={handleGenerate}
-                    disabled={loading || !prompt.trim()}
+                    disabled={loading || (!prompt.trim() && !fileContent)}
                 >
                     {loading ? (
                         <>

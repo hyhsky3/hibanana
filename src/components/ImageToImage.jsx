@@ -168,33 +168,28 @@ function ImageToImage() {
             setLoading(false);
         }
     };
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!result?.imageUrl) return;
 
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = result.imageUrl;
+        try {
+            // 使用 fetch 获取图片 Blob，避开 Canvas 跨域污染问题
+            const response = await fetch(result.imageUrl);
 
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+            if (!response.ok) throw new Error('Network response was not ok');
 
-            const dataURL = canvas.toDataURL('image/png');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = dataURL;
+            link.href = url;
             link.download = `banana-ai-gen-${Date.now()}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        };
-
-        img.onerror = () => {
-            console.error('Canvas download failed, falling back to window.open');
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed, falling back to window.open:', error);
             window.open(result.imageUrl, '_blank');
-        };
+        }
     };
 
     return (
