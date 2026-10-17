@@ -148,7 +148,7 @@ Vercel 会自动检测 Vite 框架并读取 `vercel.json`：
 | HTTP 客户端 | Axios |
 | 图标库 | Lucide React |
 | 图片处理 | Canvas 压缩 + Base64 直传 |
-| AI 模型 | GRSAI Nano Banana Pro |
+| AI 模型 | GRSAI nano-banana-2.1 |
 
 ### 核心文件说明
 | 文件 | 说明 |
